@@ -138,7 +138,6 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
               workingDir = cppbuildDirFile
               commandLine("cmake", "--build", ".", "--target", jniLibName, "--config", "Release")
             }
-            
             val targetDir = File(resourceDir).resolve(packagePath.replace('.', File.separatorChar)).path
             val files = link + jniLibName
             files.forEach {

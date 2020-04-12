@@ -3,7 +3,7 @@ plugins {
   `maven-publish`
 }
 
-group = "wumo"
+group = "com.github.wumo"
 version = "1.0.1"
 
 gradlePlugin {
