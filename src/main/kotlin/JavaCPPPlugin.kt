@@ -49,7 +49,7 @@ class JavaCPPPlugin : Plugin<Project> {
     config = extensions.create("config")
     plugins.apply(JavaPlugin::class)
     val main = convention.getPlugin<JavaPluginConvention>()
-      .sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+        .sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
     generatedJavaSrc = main.java.srcDirs.first().path
     resourceDir = main.resources.srcDirs.first().path
     
@@ -94,11 +94,10 @@ class JavaCPPPlugin : Plugin<Project> {
           val targets = generate(generatedJNISrc, presetClasspath, javaCompile.destinationDir.path)
           println(targets)
           val sb = StringBuilder()
-          
           sb.append(
-            """
+              """
 cmake_minimum_required(VERSION 3.12)
-project(SimGraphics LANGUAGES C CXX)
+project(${this@run.name} LANGUAGES C CXX)
 
 include(CMakeListsOriginal.txt)
 find_package(JNI REQUIRED)"""
@@ -107,7 +106,7 @@ find_package(JNI REQUIRED)"""
           val relative = File(generatedJNISrc).relativeTo(File(jniSrc))
           targets.forEach { (_, jniLibName, link, cppFiles) ->
             sb.append(
-              """
+                """
 add_library($jniLibName SHARED
 ${cppFiles.joinToString("\n") { relative.resolve(it).path.replace(File.separatorChar, '/') }}
   )
@@ -127,10 +126,10 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
           exec {
             workingDir = cppbuildDirFile
             commandLine(
-              "cmake",
-              jniSrc,
-              "-DCMAKE_BUILD_TYPE=Release",
-              "-DCMAKE_GENERATOR_PLATFORM=${if (platform.endsWith("-x86_64")) "x64" else "x86"}"
+                "cmake",
+                jniSrc,
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DCMAKE_GENERATOR_PLATFORM=${if (platform.endsWith("-x86_64")) "x64" else "x86"}"
             )
           }
           targets.forEach { (packagePath, jniLibName, link) ->
@@ -143,8 +142,8 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
             files.forEach {
               val targetName = "${Build.libraryPrefix}$it${Build.librarySuffix}"
               file("$jniBuild/bin/$targetName").copyTo(
-                file("$targetDir/$platform/$targetName"),
-                true
+                  file("$targetDir/$platform/$targetName"),
+                  true
               )
             }
           }
