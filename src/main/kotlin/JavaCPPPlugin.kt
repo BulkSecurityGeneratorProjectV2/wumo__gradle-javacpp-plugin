@@ -2,6 +2,7 @@ import org.bytedeco.javacpp.tools.Build
 import org.bytedeco.javacpp.tools.InfoMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.Copy
@@ -60,7 +61,7 @@ fun Project.javacpp(block: JavaCPPPluginExtension.() -> Unit) {
 class JavaCPPPlugin : Plugin<Project> {
   override fun apply(project: Project): Unit = project.run {
     config = extensions.create("config")
-    plugins.apply(JavaPlugin::class)
+    plugins.apply(JavaLibraryPlugin::class)
     val main = convention.getPlugin<JavaPluginConvention>()
       .sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
     generatedJavaSrc = main.java.srcDirs.first().path
