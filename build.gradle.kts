@@ -17,11 +17,12 @@ gradlePlugin {
 
 repositories {
   mavenCentral()
+  mavenLocal()
 }
 
 dependencies {
   implementation(kotlin("reflect"))
-  implementation("org.bytedeco:javacpp:1.5.2")
+  implementation("com.github.wumo:javacpp:1.5.4-SNAPSHOT")
 }
 
 tasks {

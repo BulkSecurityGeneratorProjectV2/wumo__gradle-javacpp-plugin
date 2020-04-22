@@ -9,17 +9,8 @@ fun main() {
     Loader.loadProperties()
   }
   properties.setProperty("platform.includepath", "cpp/NativeVideoPlayer/src")
-  val preset = Presets(
-    listOf("main.h", "player.h", "input.h"),
-    emptyList(),
-    listOf("NativeVideoPlayer"),
-    "com.github.waahoo.videoplayer.NativeVideoPlayer"
-  ) {
-    it.put(Info("waahoo::InputStreamCallback").virtualize())
-      .put(Info("waahoo::FrameGetter").virtualize())
-  }
-  MParser(properties = properties)
-    .parse(File("gen"), preset)
+  NParser(properties = properties)
+    .parse(File("gen"), NativeVideoPlayer::class.java)
 
 //  builder.property("platform.includepath", "cpp/NativeVideoPlayer/src")
 //  builder.outputDirectory = File("gen")
