@@ -70,6 +70,7 @@ class JavaCPPPlugin : Plugin<Project> {
     
     afterEvaluate {
       dependencies.add("api", "org.bytedeco:javacpp:1.5.3")
+      dependencies.add("implementation", "org.bytedeco:javacpp-platform:1.5.3")
       
       val preset = Presets(include, preload, link, target, infoMap)
       
