@@ -17,12 +17,12 @@ gradlePlugin {
 
 repositories {
   mavenCentral()
-  mavenLocal()
+  maven(url = "https://jitpack.io")
 }
 
 dependencies {
   implementation(kotlin("reflect"))
-  implementation("com.github.wumo:javacpp:1.5.4-SNAPSHOT")
+  implementation("com.github.wumo-hack:javacpp:1.5.4")
 }
 
 tasks {
