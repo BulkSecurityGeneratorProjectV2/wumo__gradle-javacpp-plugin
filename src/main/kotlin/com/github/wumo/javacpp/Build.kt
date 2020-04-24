@@ -1,6 +1,7 @@
-package org.bytedeco.javacpp.tools
+package com.github.wumo.javacpp
 
 import org.bytedeco.javacpp.Loader
+import org.bytedeco.javacpp.tools.*
 import java.io.File
 import java.io.IOException
 import java.nio.file.*
@@ -14,7 +15,10 @@ internal data class Target(
   val cppFiles: List<String>
 )
 
-internal class Build(val logger: Logger = Logger.create(Builder::class.java)) {
+internal class Build(val logger: Logger = Logger.create(
+  Builder::class.java
+)
+) {
   companion object {
     private val properties: Properties = run {
       System.setProperty("org.bytedeco.javacpp.loadlibraries", "false")
@@ -41,7 +45,7 @@ internal class Build(val logger: Logger = Logger.create(Builder::class.java)) {
   /** If true, deletes all files from [.outputDirectory] before writing anything in it.  */
   var clean = false
   
-  /** If true, attempts to generate C++ JNI files, but if false, only attempts to org.bytedeco.javacpp.parse header files.  */
+  /** If true, attempts to com.github.wumo.javacpp.generate C++ JNI files, but if false, only attempts to org.bytedeco.javacpp.com.github.wumo.javacpp.parse header files.  */
   var generate = true
   
   /** If true, also generates C++ header files containing declarations of callback functions.  */
@@ -54,10 +58,11 @@ internal class Build(val logger: Logger = Logger.create(Builder::class.java)) {
   }
   
   /** The instance of the [ClassScanner] that fills up a [Collection] of [Class] objects to process.  */
-  var classScanner: ClassScanner = ClassScanner(
-    logger, ArrayList(),
-    UserClassLoader(Thread.currentThread().contextClassLoader)
-  )
+  var classScanner: ClassScanner =
+    ClassScanner(
+      logger, ArrayList(),
+      UserClassLoader(Thread.currentThread().contextClassLoader)
+    )
   
   init {
     System.setProperty("org.bytedeco.javacpp.loadlibraries", "false")
@@ -102,7 +107,8 @@ internal class Build(val logger: Logger = Logger.create(Builder::class.java)) {
   
   private fun parse(classPath: Array<String>, cls: Class<*>): Array<File>? {
     cleanOutputDirectory()
-    return Parser(logger, properties, encoding, null).parse(outputDirectory, classPath, cls)
+    return Parser(logger, properties, encoding, null)
+      .parse(outputDirectory, classPath, cls)
   }
   
   fun generateJava() {
@@ -149,7 +155,7 @@ internal class Build(val logger: Logger = Logger.create(Builder::class.java)) {
         if (t != null && c.name != t) continue
       }
       if (!p.isLoaded) {
-        // Now try to inherit to generate C++ source files
+        // Now try to inherit to com.github.wumo.javacpp.generate C++ source files
         p = Loader.loadProperties(c, properties, true)
       }
       if (!p.isLoaded) error("Could not load platform properties for $c")

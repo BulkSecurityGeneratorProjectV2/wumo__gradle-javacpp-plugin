@@ -1,4 +1,4 @@
-package org.bytedeco.javacpp.tools
+package com.github.wumo.javacpp
 
 import Presets
 import org.bytedeco.javacpp.ClassProperties
@@ -39,7 +39,7 @@ object MClassPropertiesLoader {
     cp.addAll("platform.framework")
     cp.addAll("platform.preloadresource")
     cp.addAll("platform.preloadpath")
-    cp.addAll("platform.preload", preload)
+    cp.addAll("platform.com.github.wumo.javacpp.getPreload", preload)
     cp.addAll("platform.resourcepath")
     cp.addAll("platform.resource")
     if (cp.platformExtension == null || cp.platformExtension.length == 0) {

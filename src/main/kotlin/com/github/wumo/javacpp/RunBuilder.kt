@@ -1,8 +1,9 @@
+package com.github.wumo.javacpp
+
+import MParser
+import Presets
 import org.bytedeco.javacpp.Loader
-import org.bytedeco.javacpp.tools.Build
-import org.bytedeco.javacpp.tools.Target
 import java.io.File
-import java.util.*
 
 internal fun parse(includeDir: String, generateDir: String, preset: Presets) {
   System.setProperty("org.bytedeco.javacpp.loadlibraries", "false")

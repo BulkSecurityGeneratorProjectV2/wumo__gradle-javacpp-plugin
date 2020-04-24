@@ -72,7 +72,7 @@ class MParser(logger: Logger = Logger.create(MParser::class.java), properties: P
 @Properties(
         value = @Platform(
                 include = {${preset.include.joinToString { "\"$it\"" }}},
-                preload = {${preset.preload.joinToString { "\"$it\"" }}},
+                com.github.wumo.javacpp.getPreload = {${preset.preload.joinToString { "\"$it\"" }}},
                 link = {${preset.link.joinToString { "\"$it\"" }}}
         ),
         target = "${preset.target}"

@@ -1,9 +1,10 @@
-import org.bytedeco.javacpp.tools.Build
+import com.github.wumo.javacpp.Build
+import com.github.wumo.javacpp.generate
+import com.github.wumo.javacpp.parse
 import org.bytedeco.javacpp.tools.InfoMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaLibraryPlugin
-import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
@@ -12,8 +13,6 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.kotlin.dsl.*
 import java.io.File
 import java.lang.StringBuilder
-import java.nio.file.Files
-import java.nio.file.Paths
 
 open class JavaCPPPluginExtension {
   var include: List<String> = emptyList()
@@ -73,7 +72,13 @@ class JavaCPPPlugin : Plugin<Project> {
       dependencies.add("api", "org.bytedeco:javacpp:1.5.3")
       dependencies.add("implementation", "org.bytedeco:javacpp-platform:1.5.3")
       
-      val preset = Presets(include, preload, link, target, infoMap)
+      val preset = Presets(
+        include,
+        preload,
+        link,
+        target,
+        infoMap
+      )
       
       val generateJava by tasks.registering {
         group = JAVACPP_NAME
@@ -81,7 +86,11 @@ class JavaCPPPlugin : Plugin<Project> {
         
         outputs.dir(generatedJavaSrc)
         doLast {
-          parse(cppInclude, generatedJavaSrc, preset)
+          parse(
+            cppInclude,
+            generatedJavaSrc,
+            preset
+          )
         }
       }
       javaCompile.dependsOn(generateJava)
@@ -104,7 +113,10 @@ class JavaCPPPlugin : Plugin<Project> {
         dependsOn(javaCompile)
         
         doLast {
-          val targets = generate(generatedJNISrc, javaCompile.destinationDir.path)
+          val targets = generate(
+            generatedJNISrc,
+            javaCompile.destinationDir.path
+          )
           println(targets)
           val sb = StringBuilder()
           sb.append(
@@ -116,7 +128,9 @@ include(CMakeListsOriginal.txt)
 find_package(JNI REQUIRED)"""
           )
           
-          val relative = File(generatedJNISrc).relativeTo(File(jniSrc))
+          val relative = File(generatedJNISrc).relativeTo(File(
+            jniSrc
+          ))
           targets.forEach { (_, jniLibName, link, cppFiles) ->
             sb.append(
               """
