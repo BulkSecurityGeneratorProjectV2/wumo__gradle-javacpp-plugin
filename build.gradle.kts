@@ -1,11 +1,13 @@
 plugins {
+  base
+  `java-library`
   `kotlin-dsl`
   `maven-publish`
   id("com.gradle.plugin-publish") version "0.11.0"
 }
 
 group = "com.github.wumo"
-version = "1.0.6"
+version = "1.0.7"
 
 pluginBundle {
   website = "https://github.com/wumo/gradle-javacpp-plugin"
@@ -32,7 +34,6 @@ repositories {
 
 dependencies {
   implementation(kotlin("reflect"))
-  implementation("com.github.wumo-hack:javacpp:0.0.1")
 }
 
 tasks {
