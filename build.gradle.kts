@@ -28,12 +28,6 @@ gradlePlugin {
 
 repositories {
   mavenCentral()
-  maven(url = "https://jitpack.io")
-  mavenLocal()
-}
-
-dependencies {
-  implementation(kotlin("reflect"))
 }
 
 tasks {
