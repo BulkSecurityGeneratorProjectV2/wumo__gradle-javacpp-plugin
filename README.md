@@ -6,6 +6,8 @@ This plugin is one simplified [javacpp](https://github.com/bytedeco/javacpp) plu
 ## Usage
 Enable plugin `com.github.wumo.javacpp` in your `build.gradle.kts`:
 ```kotlin
+import org.bytedeco.javacpp.tools.Info
+
 plugins {
   id("com.github.wumo.javacpp") version "1.0.7"
 }
