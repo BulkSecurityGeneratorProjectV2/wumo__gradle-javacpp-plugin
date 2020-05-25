@@ -23,6 +23,9 @@ open class JavaCPPPluginExtension {
   var cppSourceDir: String? = null
   var cppIncludeDir: String? = null
   var copyToResources: Pair<String, String>? = null
+  var ninja: Boolean = false
+  var c_compiler: String? = null
+  var cxx_compiler: String? = null
 }
 
 internal const val JAVACPP_NAME = "javacpp"
@@ -83,8 +86,8 @@ class JavaCPPPlugin : Plugin<Project> {
       val generateJava by tasks.registering {
         group = JAVACPP_NAME
         description = "Generate JNI Java code."
-        
-        outputs.dir(generatedJavaSrc)
+
+//        outputs.dir(generatedJavaSrc)
         doLast {
           parse(
             cppInclude,
@@ -128,9 +131,7 @@ include(CMakeListsOriginal.txt)
 find_package(JNI REQUIRED)"""
           )
           
-          val relative = File(generatedJNISrc).relativeTo(File(
-            jniSrc
-          ))
+          val relative = File(generatedJNISrc).relativeTo(File(jniSrc))
           targets.forEach { (_, jniLibName, link, cppFiles) ->
             sb.append(
               """
@@ -152,12 +153,16 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
           cppbuildDirFile.mkdirs()
           exec {
             workingDir = cppbuildDirFile
-            commandLine(
+            val args = mutableListOf(
               "cmake",
               jniSrc,
-              "-DCMAKE_BUILD_TYPE=Release",
-              "-DCMAKE_GENERATOR_PLATFORM=${if (platform.endsWith("-x86_64")) "x64" else "x86"}"
+              "-DCMAKE_BUILD_TYPE=Release"
             )
+            if (config.ninja) {
+              args.add("-G")
+              args.add("Ninja")
+            }
+            commandLine(args)
           }
           targets.forEach { (packagePath, jniLibName, link) ->
             exec {
@@ -165,19 +170,12 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
               commandLine("cmake", "--build", ".", "--target", jniLibName, "--config", "Release")
             }
             val targetDir = File(resourceDir).resolve(packagePath.replace('.', File.separatorChar)).path
-            val files = link + jniLibName
+            val files = link + jniLibName + preset.preload
             files.forEach {
               val targetName = "${Build.libraryPrefix}$it${Build.librarySuffix}"
-              file("$jniBuild/bin/$targetName").copyTo(
-                file("$targetDir/$platform/$targetName"),
-                true
-              )
-            }
-            preset.preload.forEach { lib ->
-              val targetName = "${Build.libraryPrefix}$lib${Build.librarySuffix}"
-              file("$jniBuild/bin/$targetName").copyTo(
-                file("$targetDir/$platform/$targetName"),
-                true
+              searchAndCopyTo(
+                jniBuild, listOf("bin", "lib"), targetName,
+                "$targetDir/$platform"
               )
             }
           }
@@ -192,7 +190,19 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
       }
       
       generateJNI.get().finalizedBy(copyResources)
-//      javaCompile.finalizedBy(generateJNI)
     }
+  }
+  
+  fun searchAndCopyTo(rootPath: String, dirs: List<String>, targetFile: String, targetDir: String) {
+    var found = false
+    for (dir in dirs) {
+      val file = File("$rootPath/$dir/$targetFile")
+      if (file.exists()) {
+        file.copyTo(File("$targetDir/$targetFile"), true)
+        found = true
+        break
+      }
+    }
+    check(found) { "Not found $targetFile" }
   }
 }
