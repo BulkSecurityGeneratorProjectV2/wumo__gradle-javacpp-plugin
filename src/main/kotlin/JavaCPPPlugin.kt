@@ -1,6 +1,7 @@
 import com.github.wumo.javacpp.Build
 import com.github.wumo.javacpp.generate
 import com.github.wumo.javacpp.parse
+import com.github.wumo.vcvarsall
 import org.bytedeco.javacpp.tools.InfoMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -9,17 +10,15 @@ import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.compile.JavaCompile
-
 import org.gradle.kotlin.dsl.*
 import java.io.File
-import java.lang.StringBuilder
 
 open class JavaCPPPluginExtension {
   var include: List<String> = emptyList()
   var preload: List<String> = emptyList()
   var link: List<String> = emptyList()
   var target: String? = null
-  var infoMap: (InfoMap) -> Unit = {}
+  var infoMap: (InfoMap)->Unit = {}
   var cppSourceDir: String? = null
   var cppIncludeDir: String? = null
   var copyToResources: Pair<String, String>? = null
@@ -36,7 +35,7 @@ internal lateinit var include: List<String>
 internal lateinit var preload: List<String>
 internal lateinit var link: List<String>
 internal lateinit var target: String
-internal lateinit var infoMap: (InfoMap) -> Unit
+internal lateinit var infoMap: (InfoMap)->Unit
 
 internal lateinit var cppSource: String
 internal lateinit var cppInclude: String
@@ -45,7 +44,7 @@ internal lateinit var generatedJNISrc: String
 internal lateinit var resourceDir: String
 internal lateinit var jniSrc: String
 
-fun Project.javacpp(block: JavaCPPPluginExtension.() -> Unit) {
+fun Project.javacpp(block: JavaCPPPluginExtension.()->Unit) {
   configure(block)
   include = config.include
   preload = config.preload
@@ -60,7 +59,7 @@ fun Project.javacpp(block: JavaCPPPluginExtension.() -> Unit) {
   generatedJNISrc = "$jniSrc/src/jni"
 }
 
-class JavaCPPPlugin : Plugin<Project> {
+class JavaCPPPlugin: Plugin<Project> {
   override fun apply(project: Project): Unit = project.run {
     config = extensions.create("config")
     plugins.apply(JavaLibraryPlugin::class)
@@ -105,7 +104,7 @@ class JavaCPPPlugin : Plugin<Project> {
           it.isDirectory && (it.name.startsWith("cmake-build") || it.name == "build" || it.name == ".idea")
         }
         eachFile {
-          if (name == "CMakeLists.txt" && relativePath.parent.isEmpty())
+          if(name == "CMakeLists.txt" && relativePath.parent.isEmpty())
             name = "CMakeListsOriginal.txt"
         }
       }
@@ -132,7 +131,7 @@ find_package(JNI REQUIRED)"""
           )
           
           val relative = File(generatedJNISrc).relativeTo(File(jniSrc))
-          targets.forEach { (_, jniLibName, link, cppFiles) ->
+          targets.forEach { (_, jniLibName, link, cppFiles)->
             sb.append(
               """
 add_library($jniLibName SHARED
@@ -151,24 +150,34 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
           val cppbuildDirFile = file(jniBuild)
           delete(cppbuildDirFile)
           cppbuildDirFile.mkdirs()
-          exec {
-            workingDir = cppbuildDirFile
-            val args = mutableListOf(
-              "cmake",
-              jniSrc,
-              "-DCMAKE_BUILD_TYPE=Release"
-            )
-            if (config.ninja) {
-              args.add("-G")
-              args.add("Ninja")
-            }
-            commandLine(args)
-          }
-          targets.forEach { (packagePath, jniLibName, link) ->
+          
+          val (os, arch) = platform.split('-')
+          val usevcvarsall = os == "windows" && config.ninja
+          if(usevcvarsall)
+            vcvarsall(cppbuildDirFile, arch, "cmake $jniSrc  -DCMAKE_BUILD_TYPE=Release -G Ninja")
+          else
             exec {
               workingDir = cppbuildDirFile
-              commandLine("cmake", "--build", ".", "--target", jniLibName, "--config", "Release")
+              val args = mutableListOf(
+                "cmake",
+                jniSrc,
+                "-DCMAKE_BUILD_TYPE=Release"
+              )
+              if(config.ninja) {
+                args.add("-G")
+                args.add("Ninja")
+              }
+              commandLine(args)
             }
+          
+          targets.forEach { (packagePath, jniLibName, link)->
+            if(usevcvarsall)
+              vcvarsall(cppbuildDirFile, arch, "cmake --build . --target $jniLibName --config Release")
+            else
+              exec {
+                workingDir = cppbuildDirFile
+                commandLine("cmake", "--build", ".", "--target", jniLibName, "--config", "Release")
+              }
             val targetDir = File(resourceDir).resolve(packagePath.replace('.', File.separatorChar)).path
             val files = link + jniLibName + preset.preload
             files.forEach {
@@ -181,9 +190,10 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
           }
         }
       }
+      
       val copyResources by tasks.registering(Copy::class) {
         group = JAVACPP_NAME
-        config.copyToResources?.let { (from, to) ->
+        config.copyToResources?.let { (from, to)->
           from("$jniSrc/$from")
           into("$resourceDir/$to")
         }
@@ -195,9 +205,9 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
   
   fun searchAndCopyTo(rootPath: String, dirs: List<String>, targetFile: String, targetDir: String) {
     var found = false
-    for (dir in dirs) {
+    for(dir in dirs) {
       val file = File("$rootPath/$dir/$targetFile")
-      if (file.exists()) {
+      if(file.exists()) {
         file.copyTo(File("$targetDir/$targetFile"), true)
         found = true
         break
