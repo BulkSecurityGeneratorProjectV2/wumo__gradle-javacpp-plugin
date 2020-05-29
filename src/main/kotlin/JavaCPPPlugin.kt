@@ -172,7 +172,7 @@ target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
           
           targets.forEach { (packagePath, jniLibName, link)->
             if(usevcvarsall)
-              vcvarsall(cppbuildDirFile, arch, "cmake --build . --target $jniLibName --config Release")
+              vcvarsall(cppbuildDirFile, arch, "cmake --build . --target $jniLibName")
             else
               exec {
                 workingDir = cppbuildDirFile
