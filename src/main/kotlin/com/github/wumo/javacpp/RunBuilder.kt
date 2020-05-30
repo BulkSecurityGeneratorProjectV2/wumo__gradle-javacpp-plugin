@@ -1,7 +1,5 @@
 package com.github.wumo.javacpp
 
-import MParser
-import Presets
 import org.bytedeco.javacpp.Loader
 import java.io.File
 

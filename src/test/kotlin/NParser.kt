@@ -1,3 +1,4 @@
+import com.github.wumo.javacpp.MParser
 import org.bytedeco.javacpp.Loader
 import org.bytedeco.javacpp.tools.*
 import java.io.File

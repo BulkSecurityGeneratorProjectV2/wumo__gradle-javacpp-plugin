@@ -1,6 +1,5 @@
 package com.github.wumo.javacpp
 
-import Presets
 import org.bytedeco.javacpp.ClassProperties
 import java.util.*
 

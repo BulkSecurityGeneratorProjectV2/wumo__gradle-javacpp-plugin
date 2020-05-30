@@ -1,3 +1,5 @@
+import com.github.wumo.javacpp.MParser
+import com.github.wumo.javacpp.Presets
 import org.bytedeco.javacpp.Loader
 import org.bytedeco.javacpp.tools.Info
 import java.io.File

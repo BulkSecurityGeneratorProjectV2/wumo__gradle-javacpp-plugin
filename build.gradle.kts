@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.github.wumo"
-version = "1.0.8"
+version = "1.0.9"
 
 pluginBundle {
   website = "https://github.com/wumo/gradle-javacpp-plugin"
@@ -30,6 +30,10 @@ repositories {
   mavenCentral()
 }
 
+dependencies {
+  implementation("net.lingala.zip4j:zip4j:2.6.0")
+}
+
 tasks {
   compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
@@ -49,3 +53,4 @@ publishing {
     }
   }
 }
+

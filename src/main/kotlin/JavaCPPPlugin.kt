@@ -1,7 +1,7 @@
-import com.github.wumo.javacpp.Build
-import com.github.wumo.javacpp.generate
+import com.github.wumo.compileProject
+import com.github.wumo.generateJNIProject
+import com.github.wumo.javacpp.*
 import com.github.wumo.javacpp.parse
-import com.github.wumo.vcvarsall
 import org.bytedeco.javacpp.tools.InfoMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -12,20 +12,6 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.kotlin.dsl.*
 import java.io.File
-
-open class JavaCPPPluginExtension {
-  var include: List<String> = emptyList()
-  var preload: List<String> = emptyList()
-  var link: List<String> = emptyList()
-  var target: String? = null
-  var infoMap: (InfoMap)->Unit = {}
-  var cppSourceDir: String? = null
-  var cppIncludeDir: String? = null
-  var copyToResources: Pair<String, String>? = null
-  var ninja: Boolean = false
-  var c_compiler: String? = null
-  var cxx_compiler: String? = null
-}
 
 internal const val JAVACPP_NAME = "javacpp"
 
@@ -42,7 +28,7 @@ internal lateinit var cppInclude: String
 internal lateinit var generatedJavaSrc: String
 internal lateinit var generatedJNISrc: String
 internal lateinit var resourceDir: String
-internal lateinit var jniSrc: String
+internal lateinit var jniProjectRoot: String
 
 fun Project.javacpp(block: JavaCPPPluginExtension.()->Unit) {
   configure(block)
@@ -55,8 +41,8 @@ fun Project.javacpp(block: JavaCPPPluginExtension.()->Unit) {
   generatedJavaSrc = "$projectDir/src/main/java"
   cppSource = config.cppSourceDir ?: error("required to set source root folder")
   cppInclude = config.cppIncludeDir ?: error("required to set include folder")
-  jniSrc = "$buildDir/cpp/jni${File(cppSource).name}"
-  generatedJNISrc = "$jniSrc/src/jni"
+  jniProjectRoot = "$buildDir/cpp/jni${File(cppSource).name}"
+  generatedJNISrc = "$jniProjectRoot/src/jni"
 }
 
 class JavaCPPPlugin: Plugin<Project> {
@@ -88,18 +74,15 @@ class JavaCPPPlugin: Plugin<Project> {
 
 //        outputs.dir(generatedJavaSrc)
         doLast {
-          parse(
-            cppInclude,
-            generatedJavaSrc,
-            preset
-          )
+          parse(cppInclude, generatedJavaSrc, preset)
         }
       }
       javaCompile.dependsOn(generateJava)
+      
       val copyCPPSrc by tasks.registering(Copy::class) {
         group = JAVACPP_NAME
         from(cppSource)
-        into(jniSrc)
+        into(jniProjectRoot)
         exclude {
           it.isDirectory && (it.name.startsWith("cmake-build") || it.name == "build" || it.name == ".idea")
         }
@@ -108,6 +91,7 @@ class JavaCPPPlugin: Plugin<Project> {
             name = "CMakeListsOriginal.txt"
         }
       }
+      
       val generateJNI by tasks.registering {
         group = JAVACPP_NAME
         description = "Generate JNI native code."
@@ -115,104 +99,25 @@ class JavaCPPPlugin: Plugin<Project> {
         dependsOn(javaCompile)
         
         doLast {
-          val targets = generate(
+          val targets = generateJNIProject(
+            jniProjectRoot,
             generatedJNISrc,
             javaCompile.destinationDir.path
           )
-          println(targets)
-          val sb = StringBuilder()
-          sb.append(
-            """
-cmake_minimum_required(VERSION 3.12)
-project(${this@run.name} LANGUAGES C CXX)
-
-include(CMakeListsOriginal.txt)
-find_package(JNI REQUIRED)"""
-          )
           
-          val relative = File(generatedJNISrc).relativeTo(File(jniSrc))
-          targets.forEach { (_, jniLibName, link, cppFiles)->
-            sb.append(
-              """
-add_library($jniLibName SHARED
-${cppFiles.joinToString("\n") { relative.resolve(it).path.replace(File.separatorChar, '/') }}
-  )
-target_include_directories($jniLibName PUBLIC ${'$'}{JNI_INCLUDE_DIRS})
-target_compile_definitions($jniLibName PRIVATE _JNI_IMPLEMENTATION)
-target_link_libraries($jniLibName PUBLIC ${link.joinToString(" ") { it }})
-            """
-            )
-          }
-          file("$jniSrc/CMakeLists.txt").writeText(sb.toString())
-          
-          val platform = Build.platform
-          val jniBuild = "$buildDir/cpp/build/$platform"
-          val cppbuildDirFile = file(jniBuild)
-          delete(cppbuildDirFile)
-          cppbuildDirFile.mkdirs()
-          
-          val (os, arch) = platform.split('-')
-          val usevcvarsall = os == "windows" && config.ninja
-          if(usevcvarsall)
-            vcvarsall(cppbuildDirFile, arch, "cmake $jniSrc  -DCMAKE_BUILD_TYPE=Release -G Ninja")
-          else
-            exec {
-              workingDir = cppbuildDirFile
-              val args = mutableListOf(
-                "cmake",
-                jniSrc,
-                "-DCMAKE_BUILD_TYPE=Release"
-              )
-              if(config.ninja) {
-                args.add("-G")
-                args.add("Ninja")
-              }
-              commandLine(args)
-            }
-          
-          targets.forEach { (packagePath, jniLibName, link)->
-            if(usevcvarsall)
-              vcvarsall(cppbuildDirFile, arch, "cmake --build . --target $jniLibName")
-            else
-              exec {
-                workingDir = cppbuildDirFile
-                commandLine("cmake", "--build", ".", "--target", jniLibName, "--config", "Release")
-              }
-            val targetDir = File(resourceDir).resolve(packagePath.replace('.', File.separatorChar)).path
-            val files = link + jniLibName + preset.preload
-            files.forEach {
-              val targetName = "${Build.libraryPrefix}$it${Build.librarySuffix}"
-              searchAndCopyTo(
-                jniBuild, listOf("bin", "lib"), targetName,
-                "$targetDir/$platform"
-              )
-            }
-          }
+          compileProject(jniProjectRoot, targets, preset, config, resourceDir)
         }
       }
       
       val copyResources by tasks.registering(Copy::class) {
         group = JAVACPP_NAME
         config.copyToResources?.let { (from, to)->
-          from("$jniSrc/$from")
+          from("$jniProjectRoot/$from")
           into("$resourceDir/$to")
         }
       }
       
       generateJNI.get().finalizedBy(copyResources)
     }
-  }
-  
-  fun searchAndCopyTo(rootPath: String, dirs: List<String>, targetFile: String, targetDir: String) {
-    var found = false
-    for(dir in dirs) {
-      val file = File("$rootPath/$dir/$targetFile")
-      if(file.exists()) {
-        file.copyTo(File("$targetDir/$targetFile"), true)
-        found = true
-        break
-      }
-    }
-    check(found) { "Not found $targetFile" }
   }
 }

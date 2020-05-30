@@ -1,20 +1,22 @@
 package com.github.wumo
 
+import com.github.wumo.javacpp.Build
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
+import java.net.URL
+import java.net.http.HttpClient
 import java.nio.file.Path
 
 fun vcvarsall(workingDir: File, arch: String, cmd: String) {
-  val exe = "vswhere.exe"
-  if(!File(exe).exists())
-    FileOutputStream(exe).use { out->
-      Thread.currentThread().contextClassLoader
-        .getResourceAsStream(exe).use {
-          it!!.transferTo(out)
-        }
-    }
+  val exe = "vswhere${Build.exeSuffix}"
+//    FileOutputStream(exe).use { out->
+//      Thread.currentThread().contextClassLoader
+//        .getResourceAsStream(exe).use {
+//          it!!.transferTo(out)
+//        }
+//    }
   
   val msvcRoot = call("cmd", "/c", "vswhere -latest -property installationPath").trim()
   val vcvarsall = Path.of(msvcRoot, "VC/Auxiliary/Build/vcvarsall.bat").toString()

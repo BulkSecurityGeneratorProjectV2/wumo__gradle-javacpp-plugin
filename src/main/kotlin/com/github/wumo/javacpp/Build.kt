@@ -15,9 +15,10 @@ internal data class Target(
   val cppFiles: List<String>
 )
 
-internal class Build(val logger: Logger = Logger.create(
-  Builder::class.java
-)
+internal class Build(
+  val logger: Logger = Logger.create(
+    Builder::class.java
+  )
 ) {
   companion object {
     private val properties: Properties = run {
@@ -28,6 +29,7 @@ internal class Build(val logger: Logger = Logger.create(
     val platform = Loader.getPlatform()
     val libraryPrefix = properties.getProperty("platform.library.prefix", "")
     val librarySuffix = properties.getProperty("platform.library.suffix", "")
+    val exeSuffix = properties.getProperty("platform.executable.suffix", "")
   }
   
   /** Logger where to send debug, info, warning, and error messages.  */
@@ -81,17 +83,17 @@ internal class Build(val logger: Logger = Logger.create(
   }
   
   fun property(key: String, value: String) {
-    if (key.isNotEmpty() && value.isNotEmpty())
+    if(key.isNotEmpty() && value.isNotEmpty())
       properties[key] = value
   }
   
   private fun cleanOutputDirectory() {
     outputDirectory?.apply {
-      if (isDirectory && clean) {
+      if(isDirectory && clean) {
         logger.info("Deleting $outputDirectory")
-        Files.walkFileTree(toPath(), object : SimpleFileVisitor<Path>() {
+        Files.walkFileTree(toPath(), object: SimpleFileVisitor<Path>() {
           override fun postVisitDirectory(dir: Path, e: IOException?): FileVisitResult {
-            if (e != null) throw e
+            if(e != null) throw e
             Files.delete(dir)
             return FileVisitResult.CONTINUE
           }
@@ -113,24 +115,24 @@ internal class Build(val logger: Logger = Logger.create(
   
   fun generateJava() {
     loadClassPath()
-    if (classScanner.getClasses().isEmpty())
+    if(classScanner.getClasses().isEmpty())
       throw Exception("Empty classes!")
     
-    for (c in classScanner.getClasses()) {
-      if (Loader.getEnclosingClass(c) != c)
+    for(c in classScanner.getClasses()) {
+      if(Loader.getEnclosingClass(c) != c)
         continue
       
       // Do not inherit properties when parsing because it generates annotations itself
       val p = Loader.loadProperties(c, properties, false)
-      if (p.isLoaded) {
+      if(p.isLoaded) {
         val target = p.getProperty("global")
-        if (target != null && c.name != target) {
+        if(target != null && c.name != target) {
           var found = false
-          for (c2 in classScanner.getClasses()) {
+          for(c2 in classScanner.getClasses()) {
             // do not try to regenerate classes that are already scheduled for C++ compilation
             found = found or (c2.name == target)
           }
-          if (!generate || !found) {
+          if(!generate || !found) {
             parse(classScanner.classLoader.paths, c)
           }
           continue
@@ -141,27 +143,27 @@ internal class Build(val logger: Logger = Logger.create(
   
   fun generateJNI(): List<Target> {
     loadClassPath()
-    if (classScanner.getClasses().isEmpty()) throw Exception("Empty classes!")
+    if(classScanner.getClasses().isEmpty()) throw Exception("Empty classes!")
     
     val targets = ArrayList<Target>()
-    for (c in classScanner.getClasses()) {
-      if (Loader.getEnclosingClass(c) != c)
+    for(c in classScanner.getClasses()) {
+      if(Loader.getEnclosingClass(c) != c)
         continue
       
       // Do not inherit properties when parsing because it generates annotations itself
       var p = Loader.loadProperties(c, properties, false)
-      if (p.isLoaded) {
+      if(p.isLoaded) {
         val t = p.getProperty("global")
-        if (t != null && c.name != t) continue
+        if(t != null && c.name != t) continue
       }
-      if (!p.isLoaded) {
+      if(!p.isLoaded) {
         // Now try to inherit to com.github.wumo.javacpp.generate C++ source files
         p = Loader.loadProperties(c, properties, true)
       }
-      if (!p.isLoaded) error("Could not load platform properties for $c")
+      if(!p.isLoaded) error("Could not load platform properties for $c")
       
       val libraryName = outputName ?: p.getProperty("platform.library", "")
-      if (libraryName.isEmpty()) continue
+      if(libraryName.isEmpty()) continue
       
       val classArray = p.effectiveClasses.toTypedArray()
       val cppFiles = generate(classArray, libraryName)
@@ -180,22 +182,22 @@ internal class Build(val logger: Logger = Logger.create(
     val generator = Generator(logger, properties, encoding)
     val outputFiles = listOf("jnijavacpp$sourceSuffix", "$outputName$sourceSuffix")
     val sourceFilenames = outputFiles.map { outputPath.resolve(it).path }
-    val headerFilenames = arrayOf(null, if (header) outputPath.resolve(outputName + ".h").path else null)
+    val headerFilenames = arrayOf(null, if(header) outputPath.resolve(outputName + ".h").path else null)
     val loadSuffixes = arrayOf("_jnijavacpp", null)
     val baseLoadSuffixes = arrayOf(null, "_jnijavacpp")
     var classPath = System.getProperty("java.class.path")
-    for (s in classScanner.classLoader.paths)
+    for(s in classScanner.classLoader.paths)
       classPath += File.pathSeparator + s
     val classPaths = arrayOf(null, classPath)
     val classesArray = arrayOf(null, classes)
-    for (i in sourceFilenames.indices) {
+    for(i in sourceFilenames.indices) {
       logger.info("Generating " + sourceFilenames[i])
       val g = generator::generate
       val generated = g(
         sourceFilenames[i], headerFilenames[i],
         loadSuffixes[i], baseLoadSuffixes[i], classPaths[i], classesArray[i]
       )
-      if (!generated)
+      if(!generated)
         error("Nothing generated for " + sourceFilenames[i])
     }
     return outputFiles
