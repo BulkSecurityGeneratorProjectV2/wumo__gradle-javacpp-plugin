@@ -4,9 +4,15 @@ import JavaCPPPluginExtension
 import com.github.wumo.javacpp.Build
 import com.github.wumo.javacpp.Presets
 import com.github.wumo.javacpp.Target
+import net.lingala.zip4j.ZipFile
 import org.gradle.api.Project
 import java.io.File
+import java.io.FileOutputStream
+import java.net.URL
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
+
 
 internal fun Project.compileProject(
   jniProjectRoot: String,
@@ -22,9 +28,9 @@ internal fun Project.compileProject(
   cppbuildDirFile.mkdirs()
   
   compiles {
-    run(cppbuildDirFile, "cmake $jniProjectRoot -DCMAKE_BUILD_TYPE=Release -G Ninja")
+    run(cppbuildDirFile, "cmake $jniProjectRoot -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_MAKE_PROGRAM=$ninja")
     
-    targets.forEach { (packagePath, jniLibName, link)->
+    targets.forEach { (packagePath, jniLibName, link) ->
       run(cppbuildDirFile, "cmake --build . --target $jniLibName --config Release")
       
       val targetDir = File(resourceDir).resolve(packagePath.replace('.', File.separatorChar)).path
@@ -40,7 +46,7 @@ internal fun Project.compileProject(
   }
 }
 
-fun compiles(block: CompileEnv.()->Unit) {
+fun compiles(block: CompileEnv.() -> Unit) {
   val (os, arch) = Build.platform.split('-')
   block(CompileEnv(os, arch))
 }
@@ -48,34 +54,81 @@ fun compiles(block: CompileEnv.()->Unit) {
 class CompileEnv(os: String, arch: String) {
   private val isWindows = os == "windows"
   private var vcvarsall = ""
-  private var vcvarsall_arch = when(arch) {
-    "x86"    -> "x86"
+  private var vcvarsall_arch = when (arch) {
+    "x86" -> "x86"
     "x86_64" -> "x64"
-    else     -> ""
+    else -> ""
   }
+  val ninja: String
   
   init {
-    ensureExe(os)
-    if(isWindows) {
-      val msvcRoot = call("cmd", "/c", "vswhere -latest -property installationPath").trim()
+    val cacheDir = Paths.get(System.getProperty("user.home"), ".javacpp", "cache")
+      .toAbsolutePath().toFile()
+    cacheDir.mkdirs()
+    if (isWindows) {
+      val vswhere = downloadIfNotExists(
+        cacheDir,
+        "vswhere${Build.exeSuffix}",
+        "https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe"
+      ).toString()
+      val version = call("cmd", "/c", "\"$vswhere\" -latest -property installationVersion").trim()
+      check(version.isNotBlank()) { "msvc is missing" }
+      val (major) = version.split('.')
+      val msvcRoot = call("cmd", "/c", "\"$vswhere\" -latest -property installationPath").trim()
       vcvarsall = Path.of(msvcRoot, "VC/Auxiliary/Build/vcvarsall.bat").toString()
       check(File(vcvarsall).exists()) { "vcvarsall.bat is missing!" }
     }
+    ninja =
+      downloadIfNotExists(
+        cacheDir,
+        "ninja${Build.exeSuffix}",
+        when (os) {
+          "windows" -> "https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-win.zip"
+          "mac" -> "https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-mac.zip"
+          "linux" -> "https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip"
+          else -> error("not supported")
+        },
+        true
+      ).toString()
   }
   
   fun run(workDir: File, cmd: String) {
-    if(isWindows)
+    if (isWindows)
       workDir.exec("cmd", "/c", "call \"$vcvarsall\" $vcvarsall_arch && $cmd")
     else
-      workDir.exec(cmd)
+      workDir.exec("/bin/bash", "-c", cmd)
+  }
+  
+  private fun downloadIfNotExists(
+    dstDir: File, exePath: String, url: String,
+    unzip: Boolean = false
+  ): File {
+    val exe = dstDir.resolve(exePath)
+    if (!exe.exists()) {
+      val tmp = dstDir.resolve("$exePath.tmp")
+      val conn = URL(url)
+      conn.openStream().use { input ->
+        FileOutputStream(tmp).use { output ->
+          input.transferTo(output)
+        }
+      }
+      if (unzip) {
+        ZipFile(tmp).extractFile(exePath, dstDir.toString())
+        tmp.delete()
+      } else
+        Files.move(tmp.toPath(), exe.toPath())
+      println("downloaded $exe from $url")
+    }
+    return exe
   }
 }
 
+
 fun searchAndCopyTo(rootPath: String, dirs: List<String>, targetFile: String, targetDir: String) {
   var found = false
-  for(dir in dirs) {
+  for (dir in dirs) {
     val file = File("$rootPath/$dir/$targetFile")
-    if(file.exists()) {
+    if (file.exists()) {
       file.copyTo(File("$targetDir/$targetFile"), true)
       found = true
       break
