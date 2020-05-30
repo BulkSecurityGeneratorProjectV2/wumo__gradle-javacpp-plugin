@@ -9,7 +9,6 @@ open class JavaCPPPluginExtension {
   var cppSourceDir: String? = null
   var cppIncludeDir: String? = null
   var copyToResources: Pair<String, String>? = null
-  var ninja: Boolean = false
   var c_compiler: String? = null
   var cxx_compiler: String? = null
 }
