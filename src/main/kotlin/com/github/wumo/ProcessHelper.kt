@@ -6,8 +6,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.net.URL
-import java.net.http.HttpClient
-import java.nio.file.Path
+import java.nio.file.Paths
 
 fun vcvarsall(workingDir: File, arch: String, cmd: String) {
   val exe = "vswhere${Build.exeSuffix}"
@@ -19,7 +18,7 @@ fun vcvarsall(workingDir: File, arch: String, cmd: String) {
 //    }
   
   val msvcRoot = call("cmd", "/c", "vswhere -latest -property installationPath").trim()
-  val vcvarsall = Path.of(msvcRoot, "VC/Auxiliary/Build/vcvarsall.bat").toString()
+  val vcvarsall = Paths.get(msvcRoot, "VC/Auxiliary/Build/vcvarsall.bat").toString()
   check(File(vcvarsall).exists()) { "vcvarsall.bat is missing!" }
   val _arch = when(arch) {
     "x86"    -> "x86"
@@ -47,6 +46,6 @@ fun File.exec(vararg command: String) {
   val process = builder.start()
   val input = process.inputStream
   input.use {
-    it.transferTo(System.out)
+    it.copyTo(System.out)
   }
 }

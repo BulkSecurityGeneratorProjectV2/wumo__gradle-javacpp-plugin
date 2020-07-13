@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.github.wumo"
-version = "1.0.10"
+version = "1.0.11"
 
 pluginBundle {
     website = "https://github.com/wumo/gradle-javacpp-plugin"
