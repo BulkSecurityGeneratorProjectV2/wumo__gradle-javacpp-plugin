@@ -26,35 +26,33 @@ gradlePlugin {
   }
 }
 
-val publishPluginFromEnv by tasks.creating {
-  tasks.publishPlugins.get().dependsOn(this)
+//val publishPluginFromEnv by tasks.creating {
+//  tasks.publishPlugins.get().dependsOn(this)
+//
+//  doLast {
+//    val content = File("${System.getProperty("user.home")}/.gradle/gradle.properties").readLines()
+//    val (a, b) = content[0].split("=")
+//    val (c, d) = content[1].split("=")
+//    println("$a,value size=${b.length}")
+//    println("$c,value size=${d.length}")
+//  }
+//}
 
-  doLast {
-    val content = File("${System.getProperty("user.home")}/.gradle/gradle.properties").readLines()
-    val (a, b) = content[0].split("=")
-    val (c, d) = content[1].split("=")
-    println("$a,value size=${b.length}")
-    println("$c,value size=${d.length}")
+val publishPluginFromEnv by tasks.creating {
+  val setupPublishEnv by tasks.creating {
+    doLast {
+      val key = System.getenv("GRADLE_PUBLISH_KEY") ?: error("GRADLE_PUBLISH_KEY not set")
+      val secret = System.getenv("GRADLE_PUBLISH_SECRET") ?: error("GRADLE_PUBLISH_SECRET not set")
+
+      System.setProperty("gradle.publish.key", key)
+      System.setProperty("gradle.publish.secret", secret)
+    }
   }
+  dependsOn(setupPublishEnv)
+  dependsOn(tasks.publishPlugins.get())
+  tasks.publishPlugins.get().mustRunAfter(setupPublishEnv)
 }
 
-//val publishPluginFromEnv by tasks.creating {
-//  val setupPublishEnv by tasks.creating {
-//    doLast {
-//      val key = System.getenv("GRADLE_PUBLISH_KEY") ?: error("GRADLE_PUBLISH_KEY not set")
-//      val secret = System.getenv("GRADLE_PUBLISH_SECRET") ?: error("GRADLE_PUBLISH_SECRET not set")
-//
-//      System.setProperty("gradle.publish.key", key)
-//      System.setProperty("gradle.publish.secret", secret)
-//    }
-//  }
-//  tasks.login{
-//    this.login()
-//  }
-//  dependsOn(setupPublishEnv)
-//  dependsOn(tasks.publishPlugins.get())
-//  tasks.publishPlugins.get().mustRunAfter(setupPublishEnv)
-//}
 repositories {
   mavenCentral()
 }
