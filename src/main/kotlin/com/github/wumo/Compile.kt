@@ -4,6 +4,7 @@ import JavaCPPPluginExtension
 import com.github.wumo.javacpp.Build
 import com.github.wumo.javacpp.Presets
 import com.github.wumo.javacpp.Target
+import jniProjectBuild
 import net.lingala.zip4j.ZipFile
 import org.gradle.api.Project
 import java.io.File
@@ -21,7 +22,7 @@ internal fun Project.compileProject(
   resourceDir: String
 ) {
   val platform = Build.platform
-  val jniBuild = "$buildDir/cpp/build/$platform"
+  val jniBuild = "$jniProjectBuild/$platform"
   val cppbuildDirFile = file(jniBuild)
   delete(cppbuildDirFile)
   cppbuildDirFile.mkdirs()

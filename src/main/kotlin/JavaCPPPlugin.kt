@@ -30,6 +30,8 @@ internal lateinit var generatedJavaSrc: String
 internal lateinit var generatedJNISrc: String
 internal lateinit var resourceDir: String
 internal lateinit var jniProjectRoot: String
+internal lateinit var jniProjectBuild: String
+internal lateinit var jniBuild: String
 
 fun Project.javacpp(block: JavaCPPPluginExtension.() -> Unit) {
   configure(block)
@@ -42,7 +44,9 @@ fun Project.javacpp(block: JavaCPPPluginExtension.() -> Unit) {
   generatedJavaSrc = "$projectDir/src/main/java"
   cppSource = config.cppSourceDir ?: error("required to set source root folder")
   cppInclude = config.cppIncludeDir ?: error("required to set include folder")
-  jniProjectRoot = "$buildDir/cpp/jni${File(cppSource).name}"
+  jniBuild = "$buildDir/cpp"
+  jniProjectBuild = "$jniBuild/build"
+  jniProjectRoot = "$jniBuild/jni${File(cppSource).name}"
   generatedJNISrc = "$jniProjectRoot/src/jni"
 }
 
@@ -80,13 +84,13 @@ class JavaCPPPlugin : Plugin<Project> {
       }
       javaCompile.dependsOn(generateJava)
 
-      val clearCPPSrc by tasks.registering(Delete::class) {
+      val clearCPP by tasks.registering(Delete::class) {
         group = JAVACPP_NAME
-        delete(jniProjectRoot)
+        delete(jniBuild)
       }
 
       val copyCPPSrc by tasks.registering(Copy::class) {
-        dependsOn(clearCPPSrc)
+        dependsOn(clearCPP)
 
         group = JAVACPP_NAME
         delete(jniProjectRoot)
