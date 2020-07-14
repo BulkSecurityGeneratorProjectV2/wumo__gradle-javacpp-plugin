@@ -29,6 +29,10 @@ internal fun Project.compileProject(
   
   compiles {
     var compilerStr = ""
+    if(isWindows) {
+      config.c_compiler = "cl.exe"
+      config.cxx_compiler = "cl.exe"
+    }
     if(config.c_compiler != null)
       compilerStr += " -DCMAKE_C_COMPILER=${config.c_compiler} "
     if(config.cxx_compiler != null)
@@ -60,7 +64,7 @@ fun compiles(block: CompileEnv.()->Unit) {
 }
 
 class CompileEnv(os: String, arch: String) {
-  private val isWindows = os == "windows"
+  val isWindows = os == "windows"
   private var vcvarsall = ""
   private var vcvarsall_arch = when(arch) {
     "x86"    -> "x86"
@@ -79,11 +83,11 @@ class CompileEnv(os: String, arch: String) {
         "vswhere${Build.exeSuffix}",
         "https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe"
       ).toString()
-      check(File(vswhere).exists()){"error find vswhere"}
-      val version = call("cmd", "/c", "\"$vswhere\" -latest -property installationVersion").trim()
+      check(File(vswhere).exists()) { "error find vswhere" }
+      val version = call("cmd", "/c", "$vswhere -latest -property installationVersion").trim()
       check(version.isNotBlank()) { "msvc is missing" }
       val (major) = version.split('.')
-      val msvcRoot = call("cmd", "/c", "\"$vswhere\" -latest -property installationPath").trim()
+      val msvcRoot = call("cmd", "/c", "$vswhere -latest -property installationPath").trim()
       vcvarsall = Paths.get(msvcRoot, "VC/Auxiliary/Build/vcvarsall.bat").toString()
       check(File(vcvarsall).exists()) { "vcvarsall.bat is missing!" }
     }
