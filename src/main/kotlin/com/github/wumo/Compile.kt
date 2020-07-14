@@ -79,6 +79,7 @@ class CompileEnv(os: String, arch: String) {
         "vswhere${Build.exeSuffix}",
         "https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe"
       ).toString()
+      check(File(vswhere).exists()){"error find vswhere"}
       val version = call("cmd", "/c", "\"$vswhere\" -latest -property installationVersion").trim()
       check(version.isNotBlank()) { "msvc is missing" }
       val (major) = version.split('.')
