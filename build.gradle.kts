@@ -27,7 +27,8 @@ gradlePlugin {
 }
 
 val publishPluginFromEnv by tasks.creating {
-  dependsOn(tasks.publishPlugins.get())
+  tasks.publishPlugins.get().dependsOn(this)
+
   doLast {
     val content = File("${System.getProperty("user.home")}/.gradle/gradle.properties").readText()
     println(content)
