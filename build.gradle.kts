@@ -30,8 +30,11 @@ val publishPluginFromEnv by tasks.creating {
   tasks.publishPlugins.get().dependsOn(this)
 
   doLast {
-    val content = File("${System.getProperty("user.home")}/.gradle/gradle.properties").readText()
-    println(content)
+    val content = File("${System.getProperty("user.home")}/.gradle/gradle.properties").readLines()
+    val (a, b) = content[0].split("=")
+    val (c, d) = content[1].split("=")
+    println("$a,value size=${b.length}")
+    println("$c,value size=${d.length}")
   }
 }
 
