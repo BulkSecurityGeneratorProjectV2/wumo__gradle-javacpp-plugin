@@ -9,7 +9,7 @@ Enable plugin `com.github.wumo.javacpp` in your `build.gradle.kts`:
 import org.bytedeco.javacpp.tools.Info
 
 plugins {
-  id("com.github.wumo.javacpp") version "1.0.7"
+  id("com.github.wumo.javacpp") version "1.0.16"
 }
 
 javacpp {
